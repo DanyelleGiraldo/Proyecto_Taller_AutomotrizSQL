@@ -6,8 +6,6 @@ CREATE TABLE Proveedor (
     ProveedorID INT PRIMARY KEY,
     TipoProducto ENUM('M', 'P') not null,
     Nombre VARCHAR(50) not null,
-    apellido1 varchar(20) not null,
-    apellido2 varchar(20),
     Contacto VARCHAR(100) not null,
     Email VARCHAR(100) unique
 );
