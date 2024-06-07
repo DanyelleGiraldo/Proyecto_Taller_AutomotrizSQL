@@ -11,7 +11,7 @@ CREATE TABLE Proveedor (
 
 CREATE TABLE Servicio (
     ServicioID INT PRIMARY KEY,
-    Nombre VARCHAR(25) not null,
+    Nombre VARCHAR(50) not null,
     Descripcion TEXT not null,
     Costo DECIMAL(10,2) not null
 );
@@ -24,13 +24,13 @@ CREATE TABLE ubicacion (
 
 CREATE TABLE cargo (
     cargoID INT PRIMARY KEY,
-    Nombre VARCHAR(25) not null,
+    Nombre VARCHAR(50) not null,
     Descripcion VARCHAR(100) not null
 );
 
 CREATE TABLE pieza (
     piezaID INT PRIMARY KEY,
-    Nombre VARCHAR(25) not null,
+    Nombre VARCHAR(50) not null,
     Descripcion TEXT not null,
     precio DECIMAL(10,2) not null, 
     proveedorID INT not null,
@@ -84,7 +84,7 @@ CREATE TABLE orden_detalle (
 CREATE TABLE Vehiculo (
     VehiculoID INT PRIMARY KEY,
     Placa VARCHAR(6) not null,
-    Marca VARCHAR(25) not null,
+    Marca VARCHAR(50) not null,
     Modelo VARCHAR(50) not null,
     Año INT not null,
     ClienteID INT not null,
@@ -151,7 +151,7 @@ CREATE TABLE telefono (
 
 CREATE TABLE direccion (
     clienteID INT,
-    direccion VARCHAR(30) not null,
+    direccion VARCHAR(70) not null,
     codigopostal VARCHAR(20) not null,
     ciudad VARCHAR(20) not null,
     pais VARCHAR(20) not null,
