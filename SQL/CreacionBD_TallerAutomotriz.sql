@@ -1,7 +1,6 @@
 create database taller_automotriz;
 use taller_automotriz;
 
-
 CREATE TABLE Proveedor (
     ProveedorID INT PRIMARY KEY,
     TipoProducto ENUM('M', 'P') not null,
