@@ -280,3 +280,109 @@ integridad y consistencia de los datos a través de técnicas de normalización.
         ```
     - **Explicación:**
         Esta consulta lista los servicios realizados por cada empleado en el período especificado.
+
+## Subconsultas
+
+1. **Obtener el cliente que ha gastado más en reparaciones durante el último año:**
+    - **Enunciado:**
+        Obtener el cliente que ha gastado más en reparaciones durante el último año.
+    - **Solución:**
+        ```sql
+        SELECT c.Nombre AS nombre_cliente, c.Apellido AS apellido_cliente, total_gastado 
+        FROM cliente c 
+        JOIN 
+        (SELECT v.ClienteID, SUM(r.CostoTotal) AS total_gastado
+            FROM vehiculo v 
+            JOIN Reparacion r ON v.VehiculoID = r.VehiculoID
+            WHERE r.Fecha >= CURDATE() - INTERVAL 1 YEAR
+            GROUP BY v.ClienteID
+        ) AS total_reparacion ON c.ClienteID = total_reparacion.ClienteID
+        ORDER BY total_gastado DESC LIMIT 1;
+        ```
+    - **Explicación:**
+        Esta consulta obtiene el cliente que ha gastado más en reparaciones durante el último año sumando los costos totales de las reparaciones de cada cliente y ordenándolos en orden descendente, limitando el resultado al primer registro.
+
+2. **Obtener la pieza más utilizada en reparaciones durante el último mes:**
+    - **Enunciado:**
+        Obtener la pieza más utilizada en reparaciones durante el último mes.
+    - **Solución:**
+        ```sql
+        SELECT p.Nombre, COUNT(rp.reparacionID) AS usos
+        FROM pieza p
+        JOIN reparacion_pieza rp ON rp.piezaID = p.piezaID
+        JOIN reparacion r ON r.ReparacionID = rp.reparacionID
+        WHERE r.fecha >= CURDATE() - INTERVAL 1 MONTH
+        GROUP BY p.Nombre
+        HAVING COUNT(rp.reparacionID) = 
+        (SELECT COUNT(rp2.reparacionID) 
+        FROM reparacion_pieza rp2
+        JOIN reparacion r2 ON rp2.reparacionID = r2.ReparacionID
+        WHERE r2.fecha >= CURDATE() - INTERVAL 1 MONTH
+        GROUP BY rp2.piezaID
+        ORDER BY COUNT(rp2.reparacionID) DESC
+        LIMIT 1)
+        ```
+    - **Explicación:**
+        Esta consulta identifica la pieza más utilizada en reparaciones durante el último mes. Agrupa las piezas por nombre y cuenta el número de veces que cada pieza ha sido utilizada en reparaciones, comparando con la pieza más utilizada.
+
+3. **Obtener los proveedores que suministran las piezas más caras:**
+    - **Enunciado:**
+        Obtener los proveedores que suministran las piezas más caras.
+    - **Solución:**
+        ```sql
+        SELECT p.Nombre AS nombre_proveedor, pi.Nombre AS nombre_pieza, pi.precio
+        FROM proveedor p 
+        JOIN pieza pi ON pi.proveedorID = p.ProveedorID
+        WHERE pi.precio = 
+        (SELECT MAX(pi2.precio) FROM pieza pi2);
+        ```
+    - **Explicación:**
+        Esta consulta obtiene los proveedores que suministran las piezas más caras comparando los precios de todas las piezas y seleccionando la máxima.
+
+4. **Listar las reparaciones que no utilizaron piezas específicas durante el último año:**
+    - **Enunciado:**
+        Listar las reparaciones que no utilizaron piezas específicas durante el último año.
+    - **Solución:**
+        ```sql
+        SELECT r.ReparacionID, r.Fecha, r.Descripcion 
+        FROM reparacion r
+        JOIN reparacion_pieza rp ON rp.reparacionID = r.ReparacionID
+        JOIN pieza p ON rp.piezaID = p.piezaID
+        WHERE r.Fecha >= CURDATE() - INTERVAL 1 YEAR 
+        AND r.ReparacionID NOT IN(
+            SELECT rp.reparacionID FROM reparacion_pieza rp
+            WHERE rp.piezaID IN
+            (SELECT piezaID FROM pieza
+                WHERE piezaID = 1
+            )
+        );
+        ```
+    - **Explicación:**
+        Esta consulta lista las reparaciones realizadas en el último año que no utilizaron una pieza específica (piezaID = 1).
+
+5. **Obtener las piezas que están en inventario por debajo del 10% del stock inicial:**
+    - **Enunciado:**
+        Obtener las piezas que están en inventario por debajo del 10% del stock inicial.
+    - **Solución:**
+        ```sql
+        SELECT 
+            p.piezaID,
+            p.Nombre AS nombre_pieza,
+            i.cantidad AS stock_actual,
+            (i.cantidad * 100) / (
+                SELECT cantidad 
+                FROM inventario 
+                WHERE piezaID = p.piezaID 
+                ORDER BY inventarioID ASC 
+                LIMIT 1
+            ) AS porcentaje_stock
+        FROM 
+            pieza p
+        JOIN 
+            inventario i ON p.piezaID = i.piezaID
+        HAVING 
+            porcentaje_stock < 10;
+        ```
+    - **Explicación:**
+        Esta consulta obtiene las piezas cuyo stock actual está por debajo del 10% del stock inicial. Calcula el porcentaje de stock actual sobre el stock inicial para cada pieza y selecciona las que están por debajo del 10%.
+     
