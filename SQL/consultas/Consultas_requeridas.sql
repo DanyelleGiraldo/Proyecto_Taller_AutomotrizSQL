@@ -381,7 +381,3 @@ BEGIN
 END $$
 
 DELIMITER ;
-
-
-
-show tables;
