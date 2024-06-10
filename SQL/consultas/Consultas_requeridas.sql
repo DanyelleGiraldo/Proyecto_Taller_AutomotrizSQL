@@ -196,6 +196,192 @@ and r.ReparacionID not in(
     ));
 
 -- 5. Obtener las piezas que están en inventario por debajo del 10% del stock inicial
+SELECT 
+    p.piezaID,
+    p.Nombre AS nombre_pieza,
+    i.cantidad AS stock_actual,
+    (i.cantidad * 100) / (
+        SELECT cantidad 
+        FROM inventario 
+        WHERE piezaID = p.piezaID 
+        ORDER BY inventarioID ASC 
+        LIMIT 1
+    ) AS porcentaje_stock
+FROM 
+    pieza p
+JOIN 
+    inventario i ON p.piezaID = i.piezaID
+HAVING 
+    porcentaje_stock < 10;
+
+
+-- 1. Crear un procedimiento almacenado para insertar una nueva reparación.
+DELIMITER $$
+CREATE PROCEDURE insertarreparacion(
+    IN p_ReparacionID INT,
+    IN p_Fecha DATE, 
+    IN p_VehiculoID INT, 
+    IN p_ServicioID INT, 
+    IN p_CostoTotal DECIMAL(10,2), 
+    IN p_Descripcion TEXT, 
+    IN p_duracion INT
+)
+BEGIN
+    INSERT INTO Reparacion (ReparacionID, Fecha, VehiculoID, ServicioID, CostoTotal, Descripcion, duracion) 
+    VALUES (p_ReparacionID, p_Fecha, p_VehiculoID, p_ServicioID, p_CostoTotal, p_Descripcion, p_duracion);
+END $$
+
+DELIMITER ;
+
+-- 2. Crear un procedimiento almacenado para actualizar el inventario de una pieza.
+
+DELIMITER $$ 
+CREATE PROCEDURE actualizarinventariopieza(
+    IN ainventarioID INT, 
+    IN apiezaID INT, 
+    IN acantidad INT, 
+    IN aubicacionID INT
+)
+BEGIN
+    UPDATE inventario 
+    SET cantidad = acantidad, ubicacionID = aubicacionID
+    WHERE inventarioID = ainventarioID AND piezaID = apiezaID;
+END $$
+DELIMITER ;
+
+
+-- 3. Crear un procedimiento almacenado para eliminar una cita
+
+DELIMITER $$
+CREATE PROCEDURE eliminarcita(
+    in acitaID INT
+)
+begin
+    delete from cita where citaID = acitaID;
+end $$
+Delimiter ;
+
+-- 4. Crear un procedimiento almacenado para generar una factura
+DELIMITER $$
+CREATE PROCEDURE generarfactura(
+    in afacturaID int, 
+    in afecha DATE, 
+    in aclienteID int, 
+    in atotal decimal(10,2)
+)
+begin 
+INSERT INTO factura (facturaID, fecha, clienteID, total) VALUES
+    (afacturaID, afecha, aclienteID, atotal);
+END $$
+DELIMITER ;
+
+-- 5. Crear un procedimiento almacenado para obtener el historial de reparaciones
+-- de un vehículo
+
+DELIMITER $$ 
+CREATE PROCEDURE historialvehiculo(
+    in avehiculoID INT
+)
+BEGIN
+    select ReparacionID, Fecha, VehiculoID, ServicioID, CostoTotal, Descripcion, duracion from reparacion where VehiculoID = avehiculoID;
+END $$
+DELIMITER ;
+
+-- 6. Crear un procedimiento almacenado para calcular el costo total de
+-- reparaciones de un cliente en un período
+DELIMITER $$ 
+CREATE PROCEDURE totalcliente(
+    in aclienteID int,
+    in fecha1 date,
+    in fecha2 date
+)
+begin
+SELECT 
+    Cliente.ClienteID,
+    Cliente.Nombre,
+    Cliente.Apellido,
+    SUM(Reparacion.CostoTotal) AS TotalCostoReparaciones
+FROM 
+    Cliente
+JOIN 
+    Vehiculo ON Cliente.ClienteID = Vehiculo.ClienteID
+JOIN 
+    Reparacion ON Vehiculo.VehiculoID = Reparacion.VehiculoID
+WHERE 
+    Reparacion.Fecha BETWEEN fecha1 AND fecha2 AND aclienteID = cliente.clienteID
+GROUP BY 
+    Cliente.ClienteID, Cliente.Nombre, Cliente.Apellido;
+end $$
+DELIMITER ;
+
+
+-- 7. Crear un procedimiento almacenado para obtener la lista de vehículos que
+-- requieren mantenimiento basado en el kilometraje.
+
+
+
+-- 8. Crear un procedimiento almacenado para insertar una nueva orden de compra
+
+DELIMITER $$
+CREATE Procedure crearordencompra(
+    in aordenID int, 
+    in afecha date, 
+    in aproveedorID int, 
+    in aempleadoID int, 
+    in atotal DECIMAL(10,2)
+)
+begin
+    INSERT INTO orden_compra (ordenID, fecha, proveedorID, empleadoID, total) VALUES
+    (aordenID, afecha, aproveedorID, aempleadoID, atotal);
+end $$
+DELIMITER ;
+
+-- 9. Crear un procedimiento almacenado para actualizar los datos de un cliente
+
+DELIMITER $$
+CREATE PROCEDURE actualizarcliente(
+    in aClienteID INT,
+    in aNombre VARCHAR(25),
+    in aApellido VARCHAR(25),
+    in aEmail VARCHAR(100)
+)
+begin 
+
+UPDATE cliente 
+    SET  Nombre = aNombre, Apellido = aApellido, Email = aEmail
+    WHERE ClienteID = aClienteID;
+
+end $$
+DELIMITER ;
+
+-- 10. Crear un procedimiento almacenado para obtener los servicios más solicitados
+-- en un período
+
+DELIMITER $$
+
+CREATE PROCEDURE serviciosMasSolicitados(
+    IN fechaInicio DATE,
+    IN fechaFin DATE
+)
+BEGIN
+    SELECT 
+        s.ServicioID,
+        s.Nombre,
+        COUNT(r.ServicioID) AS NumeroSolicitudes
+    FROM 
+        Servicio s
+    JOIN 
+        Reparacion r ON s.ServicioID = r.ServicioID
+    WHERE 
+        r.Fecha BETWEEN fechaInicio AND fechaFin
+    GROUP BY 
+        s.ServicioID, s.Nombre
+    ORDER BY 
+        NumeroSolicitudes DESC;
+END $$
+
+DELIMITER ;
+
 
 
 show tables;
